@@ -1,0 +1,62 @@
+<mxfile host="65bd71144e">
+    <diagram id="architecture" name="01 Architecture">
+        <mxGraphModel dx="557" dy="380" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="main" value="main.cpp&#xa;menu / opcja &#39;v&#39;&#xa;DjiUser_RunCustomVideoStreamSample" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+                    <mxGeometry y="60" width="240" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="appcpp" value="application.cpp&#xa;DjiUser_ApplicationStart&#xa;rejestracja + start SDK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+                    <mxGeometry x="820" y="60" width="200" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="pipeline" value="VideoStreamPipeline&#xa;VideoStreamPipeline.{h,cpp}&#xa;&#xa;std::thread thread_&#xa;std::atomic&lt;bool&gt; running_" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="400" y="60" width="280" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="iframesrc" value="IFrameSource&#xa;IFrameSource.h&#xa;&#xa;(interfejs: open/readFrame/&#xa;getFps/getWidth/getHeight)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontStyle=0;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="300" width="200" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="fileframesrc" value="FileFrameSource&#xa;FileFrameSource.{h,cpp}&#xa;&#xa;implementuje IFrameSource" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="460" width="200" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="encoder" value="H264Encoder&#xa;H264Encoder.{h,cpp}&#xa;&#xa;BGR -&gt; YUV420P (sws)&#xa;-&gt; libx264 -&gt; NAL-y" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" parent="1" vertex="1">
+                    <mxGeometry x="370" y="300" width="210" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="sender" value="DjiPayloadSender&#xa;DjiPayloadSender.{h,cpp}&#xa;&#xa;AUD(6B) + chunking &lt;=60000&#xa;stub: stream_out.h264" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" parent="1" vertex="1">
+                    <mxGeometry x="640" y="300" width="210" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="psdkbox" value="PSDK 3.9.2&#xa;psdk_lib/libpayloadsdk.a" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;rounded=0;shadow=0;collapsible=0;fillColor=#F5F5F5;strokeColor=#666666;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="580" width="760" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="psdkapi" value="DjiPayloadCamera_*&#xa;Init / RegCommonHandler / SetVideoStreamType / SendVideoStream / GetVideoStreamState" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="psdkbox" vertex="1">
+                    <mxGeometry x="180" y="40" width="400" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_main_pipe" value="woła: tworzy pipeline, start()/stop()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;fontSize=11;" parent="1" source="main" target="pipeline" edge="1">
+                    <mxGeometry x="0.0857" y="-32" relative="1" as="geometry">
+                        <mxPoint x="22" y="30" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_app_psdk" value="RegCommonHandler, SetVideoStreamType (przed ApplicationStart)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;fontSize=11;" parent="1" source="appcpp" target="psdkbox" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pipe_src" value="posiada (unique_ptr)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;startArrow=diamond;startFill=1;fontSize=11;" parent="1" source="pipeline" target="iframesrc" edge="1">
+                    <mxGeometry x="0.5" y="70" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_pipe_enc" value="posiada (unique_ptr)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;startArrow=diamond;startFill=1;fontSize=11;" parent="1" source="pipeline" target="encoder" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_pipe_send" value="posiada (unique_ptr)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;startArrow=diamond;startFill=1;fontSize=11;" parent="1" source="pipeline" target="sender" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_file_if" value="implementuje" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;fontSize=11;" parent="1" source="fileframesrc" target="iframesrc" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_send_psdk" value="SendVideoStream&#xa;(tylko bez DJI_STREAM_SIMULATE)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;dashed=1;strokeColor=#CC0000;fontColor=#CC0000;fontSize=11;" parent="1" source="sender" target="psdkbox" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

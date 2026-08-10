@@ -1,0 +1,53 @@
+<mxfile host="65bd71144e">
+    <diagram id="pipeline-data-flow" name="02 Pipeline Data Flow">
+        <mxGraphModel dx="1169" dy="797" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="input" value="drone_vid.mp4&#xa;plik wejsciowy&#xa;3840x2160 @30fps" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="200" width="150" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="src" value="FileFrameSource&#xa;readFrame(cv::Mat&amp;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" parent="1" vertex="1">
+                    <mxGeometry x="260" y="195" width="170" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="enc" value="H264Encoder&#xa;encodedFrame()&#xa;vector&lt;uint8_t&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" parent="1" vertex="1">
+                    <mxGeometry x="490" y="195" width="170" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="send" value="DjiPayloadSender&#xa;send(nals) -&gt; bool" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" parent="1" vertex="1">
+                    <mxGeometry x="720" y="195" width="170" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="mode" value="DJI_STREAM_SIMULATE?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="380" width="200" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="outfile" value="stream_out.h264&#xa;plik wyjsciowy (stub)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="520" width="170" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="outdrone" value="DjiPayloadCamera_&#xa;SendVideoStream&#xa;(dron, tryb realny)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
+                    <mxGeometry x="930" y="520" width="170" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_in_src" value="pliki wideo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;fontSize=11;" parent="1" source="input" target="src" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_src_enc" value="klatka BGR (cv::Mat)&#xa;3840x2160" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;strokeWidth=2;fontSize=11;" parent="1" source="src" target="enc" edge="1">
+                    <mxGeometry y="-30" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_enc_send" value="NAL-y H.264&#xa;vector&lt;uint8_t&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;strokeWidth=2;fontSize=11;" parent="1" source="enc" target="send" edge="1">
+                    <mxGeometry y="-30" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e_send_mode" value="AUD(6B) + kawalki  60000 B&#xa;DJI-H264 format" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;strokeWidth=2;fontSize=11;" parent="1" source="send" target="mode" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_mode_file" value="TAK" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;strokeColor=#82B366;fontColor=#82B366;fontStyle=1;fontSize=11;" parent="1" source="mode" target="outfile" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_mode_drone" value="NIE" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;dashed=1;strokeColor=#CC0000;fontColor=#CC0000;fontStyle=1;fontSize=11;" parent="1" source="mode" target="outdrone" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
