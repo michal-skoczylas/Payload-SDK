@@ -33,8 +33,11 @@ H264Encoder::H264Encoder(int width, int height, int fps, int bitrate)
     this->codecCtx_->gop_size = 2 * fps;
     this->codecCtx_->max_b_frames = 0;
     this->codecCtx_->thread_count = 1;
-    if (!avcodec_open2(this->codecCtx_, codec, nullptr))
+    AVDictionary *opts = nullptr;
+    av_dict_set(&opts, "tune", "zerolatency", 0);
+    if (!avcodec_open2(this->codecCtx_, codec, &opts))
     {
+        av_dict_free(&opts);
         frame_ = av_frame_alloc();
         frame_->format = AV_PIX_FMT_YUV420P;
         frame_->width = width_;
@@ -51,6 +54,7 @@ H264Encoder::H264Encoder(int width, int height, int fps, int bitrate)
     }
     else
     {
+        av_dict_free(&opts);
         this->ready_ = false;
         return;
     }

@@ -9,6 +9,7 @@ extern "C"
 #include <libswscale/swscale.h>
 #include <libavutil/frame.h>
 #include <libavutil/pixfmt.h>
+#include <libavutil/dict.h>
 }
 class H264Encoder
 {
