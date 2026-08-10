@@ -23,7 +23,6 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include <liveview/test_liveview_entry.hpp>
 #include <perception/test_perception_entry.hpp>
 #include <perception/test_lidar_entry.hpp>
 #include <perception/test_radar_entry.hpp>
@@ -47,7 +46,11 @@
 #include <iostream>
 
 // custom lib
-#include "custom_camera/CameraManager.h"
+#include "custom_camera/FileFrameSource.h"
+#include "custom_camera/H264Encoder.h"
+#include "custom_camera/DjiPayloadSender.h"
+#include "custom_camera/VideoStreamPipeline.h"
+#include <memory>
 #include <thread>
 #include <chrono>
 
@@ -80,7 +83,6 @@ start:
         << "| [2] Hms info manager sample - get health manger system info by language                          |\n"
         << "| [9] Waypoint 3.0 sample - run airline mission by kmz file (not support on M300 RTK)              |\n"
         << "| [a] Gimbal manager sample - you can control gimbal by PSDK                                       |\n"
-        << "| [c] Camera stream view sample - display the camera video stream                                  |\n"
         << "| [d] Stereo vision view sample - display the stereo image                                         |\n"
         << "| [e] Run camera manager sample - you can test camera's functions interactively                    |\n"
         << "| [f] Start rtk positioning sample - you can receive rtk rtcm data when rtk signal is ok           |\n"
@@ -102,9 +104,6 @@ start:
         break;
     case 'a':
         DjiUser_RunGimbalManagerSample();
-        break;
-    case 'c':
-        DjiUser_RunCameraStreamViewSample();
         break;
     case 'd':
         DjiUser_RunStereoVisionViewSample();
@@ -141,23 +140,45 @@ void DjiUser_RunCustomVideoStreamSample()
     USER_LOG_INFO("Starting test video stream");
     try
     {
-        CameraManager manager("/workspaces/dji/Payload-SDK/drone_vid.mp4");
-        USER_LOG_INFO("Starting sending video...");
-        for (int i = 0; i < 500; i++)
+        const std::string videoPath = "drone_vid.mp4";
+
+        auto source = std::unique_ptr<IFrameSource>(new FileFrameSource(videoPath));
+        if (!source->open())
         {
-            EncodedPacket h264Packet = manager.processNextFrame();
-            if (h264Packet.data != nullptr && h264Packet.size > 0)
-            {
-                // tu mozna wstawic dji payload
-                // DjiPayloadCamera_SendVideoStream((const uint8_t*)h264Packet.data, h264Packet.size);
-                if (i % 30 == 0)
-                {
-                    std::cout << "[STREAM] send packet h264 of size: " << h264Packet.size << " frame: " << i << std::endl;
-                }
-            }
-            // 30 fps
-            std::this_thread::sleep_for(std::chrono::milliseconds(33));
+            USER_LOG_ERROR("Could not open video: %s", videoPath.c_str());
+            return;
         }
+
+        auto encoder = std::unique_ptr<H264Encoder>(
+            new H264Encoder(source->getWidth(), source->getHeight(), source->getFps(), 4000000));
+        if (!encoder->isReady())
+        {
+            USER_LOG_ERROR("Encoder failed to be ready");
+            return;
+        }
+
+        auto sender = std::unique_ptr<DjiPayloadSender>(new DjiPayloadSender());
+
+        VideoStreamPipeline pipeline(std::move(source), std::move(encoder), std::move(sender));
+
+        USER_LOG_INFO("Starting sending video...");
+        if (!pipeline.start())
+        {
+            USER_LOG_ERROR("Pipeline failed to start");
+            return;
+        }
+
+        // 30 fps, wysylka leci w watku pipeline
+        for (int i = 0; i < 300; i++)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (i % 10 == 0)
+            {
+                std::cout << "[STREAM] running, " << i / 10 << "s" << std::endl;
+            }
+        }
+
+        pipeline.stop();
         USER_LOG_INFO("Stream ended");
     }
     catch (const std::exception &e)

@@ -8,6 +8,13 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 add_definitions(-D_GNU_SOURCE)
 
+# Tryb offline: strumień zapisywany do pliku (stub) zamiast do drona.
+# Użycie: cmake .. -DOFFLINE_STREAM_ON=ON
+option(OFFLINE_STREAM_ON "Stream video to file instead of PSDK (stub)" OFF)
+if (OFFLINE_STREAM_ON)
+    add_definitions(-DDJI_STREAM_SIMULATE)
+endif ()
+
 if (MEMORY_LEAK_CHECK_ON MATCHES TRUE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
@@ -27,7 +34,6 @@ include_directories(../common)
 include_directories(../manifold2/application)
 
 file(GLOB_RECURSE MODULE_SAMPLE_SRC
-        ../../../module_sample/liveview/*.c*
         ../../../module_sample/camera_manager/*.c*
         ../../../module_sample/perception/*.c*
         ../../../module_sample/gimbal/*.c*
@@ -76,6 +82,14 @@ else ()
     message(STATUS "Did not find OpenCV in the system, image data is inside RecvContainer as raw data")
 endif ()
 
+# FFmpeg: uzyj pakietu systemowego (apt, v8 z libx264) zamiast /usr/local (v4 bez libx264).
+# Nasz enkoder wymaga nowego API i libx264.
+set(FFMPEG_INCLUDE_DIR "/usr/include/aarch64-linux-gnu" CACHE PATH "FFmpeg v8 headers" FORCE)
+set(FFMPEG_avcodec_LIBRARY "/usr/lib/aarch64-linux-gnu/libavcodec.so" CACHE FILEPATH "FFmpeg v8 avcodec" FORCE)
+set(FFMPEG_avformat_LIBRARY "/usr/lib/aarch64-linux-gnu/libavformat.so" CACHE FILEPATH "FFmpeg v8 avformat" FORCE)
+set(FFMPEG_avutil_LIBRARY "/usr/lib/aarch64-linux-gnu/libavutil.so" CACHE FILEPATH "FFmpeg v8 avutil" FORCE)
+set(FFMPEG_swscale_LIBRARY "/usr/lib/aarch64-linux-gnu/libswscale.so" CACHE FILEPATH "FFmpeg v8 swscale" FORCE)
+
 find_package(FFMPEG REQUIRED)
 if (FFMPEG_FOUND)
     message(STATUS "Found FFMPEG installed in the system")
@@ -97,7 +111,10 @@ if (FFMPEG_FOUND)
     endif ()
 
     target_link_libraries(${PROJECT_NAME} ${FFMPEG_LIBRARIES})
-    include_directories(${FFMPEG_INCLUDE_DIR})
+    # CMake deduplikuje /usr/include/aarch64-linux-gnu jako katalog systemowy,
+    # wiec target_include_directories nie emituje -isystem. Wymuszamy flage
+    # wprost: bez -isystem GCC wybiera v4 z /usr/local/include (patrz Krok 3).
+    target_compile_options(${PROJECT_NAME} PRIVATE -isystem /usr/include/aarch64-linux-gnu)
     add_definitions(-DFFMPEG_INSTALLED)
 else ()
     message(STATUS "Cannot Find FFMPEG")

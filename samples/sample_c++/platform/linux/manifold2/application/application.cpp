@@ -29,6 +29,7 @@
 #include <dji_logger.h>
 #include <dji_core.h>
 #include <dji_aircraft_info.h>
+#include <dji_payload_camera.h>
 #include <csignal>
 #include "dji_sdk_config.h"
 
@@ -73,6 +74,36 @@ static FILE *s_djiLogFileCnt;
 static void DjiUser_NormalExitHandler(int signalNum);
 static T_DjiReturnCode DjiTest_HighPowerApplyPinInit();
 static T_DjiReturnCode DjiTest_WriteHighPowerApplyPin(E_DjiPowerManagementPinState pinState);
+
+/* Private values -------------------------------------------------------------*/
+static T_DjiCameraCommonHandler s_cameraCommonHandler;
+static E_DjiCameraMode s_cameraMode = DJI_CAMERA_MODE_RECORD_VIDEO;
+
+static T_DjiReturnCode DjiCustom_CameraGetSystemState(T_DjiCameraSystemState *systemState)
+{
+    if (systemState == nullptr) {
+        return DJI_ERROR_SYSTEM_MODULE_CODE_INVALID_PARAMETER;
+    }
+    memset(systemState, 0, sizeof(T_DjiCameraSystemState));
+    systemState->cameraMode = s_cameraMode;
+    systemState->shootingState = DJI_CAMERA_SHOOTING_PHOTO_IDLE;
+    return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
+}
+
+static T_DjiReturnCode DjiCustom_CameraSetMode(E_DjiCameraMode mode)
+{
+    s_cameraMode = mode;
+    return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
+}
+
+static T_DjiReturnCode DjiCustom_CameraGetMode(E_DjiCameraMode *mode)
+{
+    if (mode == nullptr) {
+        return DJI_ERROR_SYSTEM_MODULE_CODE_INVALID_PARAMETER;
+    }
+    *mode = s_cameraMode;
+    return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
+}
 
 /* Exported functions definition ---------------------------------------------*/
 Application::Application(int argc, char **argv)
@@ -294,6 +325,28 @@ void Application::DjiUser_ApplicationStart()
     returnCode = DjiCore_SetSerialNumber("PSDK12345678XX");
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         throw std::runtime_error("Set serial number error");
+    }
+
+    /* Rejestracja kamery payloadu: minimalny handler + format DJI-H264.
+       WAZNE: SetVideoStreamType MUSI byc wywolane przed DjiCore_ApplicationStart
+       (dji_payload_camera.h:803), inaczej SDK uzyje domyslnego typu i zablokuje API. */
+    returnCode = DjiPayloadCamera_Init();
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        throw std::runtime_error("Payload camera init error");
+    }
+
+    s_cameraCommonHandler.GetSystemState = DjiCustom_CameraGetSystemState;
+    s_cameraCommonHandler.SetMode = DjiCustom_CameraSetMode;
+    s_cameraCommonHandler.GetMode = DjiCustom_CameraGetMode;
+
+    returnCode = DjiPayloadCamera_RegCommonHandler(&s_cameraCommonHandler);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        throw std::runtime_error("Payload camera register common handler error");
+    }
+
+    returnCode = DjiPayloadCamera_SetVideoStreamType(DJI_CAMERA_VIDEO_STREAM_TYPE_H264_DJI_FORMAT);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        throw std::runtime_error("Payload camera set video stream type error");
     }
 
 #ifdef CONFIG_MODULE_SAMPLE_CAMERA_EMU_ON
