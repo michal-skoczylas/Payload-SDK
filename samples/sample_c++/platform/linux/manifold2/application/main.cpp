@@ -41,6 +41,13 @@
 #include <positioning/test_positioning.h>
 #include <hms_manager/hms_manager_entry.h>
 #include "camera_manager/test_camera_manager_entry.h"
+#include <opencv4/opencv2/opencv.hpp>
+#include <iostream>
+
+// custom lib
+#include "custom_camera/CameraManager.h"
+#include <thread>
+#include <chrono>
 
 /* Private constants ---------------------------------------------------------*/
 
@@ -50,10 +57,12 @@
 
 /* Private functions declaration ---------------------------------------------*/
 
+void DjiUser_RunCustomVideoStreamSample();
+
 /* Exported functions definition ---------------------------------------------*/
 int main(int argc, char **argv)
 {
-    Application application(argc, argv);
+    // Application application(argc, argv);
     char inputChar;
     T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
     T_DjiReturnCode returnCode;
@@ -74,39 +83,45 @@ start:
         << std::endl;
 
     std::cin >> inputChar;
-    switch (inputChar) {
-        case '0':
-            DjiTest_FcSubscriptionRunSample();
+    switch (inputChar)
+    {
+    case '0':
+        DjiTest_FcSubscriptionRunSample();
+        break;
+    case '1':
+        DjiUser_RunFlightControllerSample();
+        break;
+    case '2':
+        DjiUser_RunHmsManagerSample();
+        break;
+    case 'a':
+        DjiUser_RunGimbalManagerSample();
+        break;
+    case 'c':
+        DjiUser_RunCameraStreamViewSample();
+        break;
+    case 'd':
+        DjiUser_RunStereoVisionViewSample();
+        break;
+    case 'e':
+        DjiUser_RunCameraManagerSample();
+        break;
+    case 'f':
+        returnCode = DjiTest_PositioningStartService();
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS)
+        {
+            USER_LOG_ERROR("rtk positioning sample init error");
             break;
-        case '1':
-            DjiUser_RunFlightControllerSample();
-            break;
-        case '2':
-            DjiUser_RunHmsManagerSample();
-            break;
-        case 'a':
-            DjiUser_RunGimbalManagerSample();
-            break;
-        case 'c':
-            DjiUser_RunCameraStreamViewSample();
-            break;
-        case 'd':
-            DjiUser_RunStereoVisionViewSample();
-            break;
-        case 'e':
-            DjiUser_RunCameraManagerSample();
-            break;
-        case 'f':
-            returnCode = DjiTest_PositioningStartService();
-            if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-                USER_LOG_ERROR("rtk positioning sample init error");
-                break;
-            }
+        }
 
-            USER_LOG_INFO("Start rtk positioning sample successfully");
-            break;
-        default:
-            break;
+        USER_LOG_INFO("Start rtk positioning sample successfully");
+        break;
+
+    case 'v':
+        DjiUser_RunCustomVideoStreamSample();
+        break;
+    default:
+        break;
     }
 
     osalHandler->TaskSleepMs(2000);
@@ -115,5 +130,33 @@ start:
 }
 
 /* Private functions definition-----------------------------------------------*/
-
+void DjiUser_RunCustomVideoStreamSample()
+{
+    USER_LOG_INFO("Starting test video stream");
+    try
+    {
+        CameraManager manager("/workspaces/dji/Payload-SDK/drone_vid.mp4");
+        USER_LOG_INFO("Starting sending video...");
+        for (int i = 0; i < 500; i++)
+        {
+            EncodedPacket h264Packet = manager.processNextFrame();
+            if (h264Packet.data != nullptr && h264Packet.size > 0)
+            {
+                // tu mozna wstawic dji payload
+                // DjiPayloadCamera_SendVideoStream((const uint8_t*)h264Packet.data, h264Packet.size);
+                if (i % 30 == 0)
+                {
+                    std::cout << "[STREAM] send packet h264 of size: " << h264Packet.size << " frame: " << i << std::endl;
+                }
+            }
+            // 30 fps
+            std::this_thread::sleep_for(std::chrono::milliseconds(33));
+        }
+        USER_LOG_INFO("Stream ended");
+    }
+    catch (const std::exception &e)
+    {
+        USER_LOG_ERROR("Error occured in stream %s", e.what());
+    }
+}
 /****************** (C) COPYRIGHT DJI Innovations *****END OF FILE****/

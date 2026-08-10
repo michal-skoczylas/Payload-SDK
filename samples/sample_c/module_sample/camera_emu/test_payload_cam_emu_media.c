@@ -206,7 +206,7 @@ T_DjiReturnCode DjiTest_CameraEmuMediaStartService(void)
         USER_LOG_ERROR("Set data channel bandwidth width proportion error.");
         return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
     }
-
+    //task wysylajacy stream
     if (DjiPlatform_GetHalNetworkHandler() != NULL || DjiPlatform_GetHalUsbBulkHandler() != NULL) {
         returnCode = osalHandler->TaskCreate("user_camera_media_task", UserCameraMedia_SendVideoTask, 2048,
                                              NULL, &s_userSendVideoThread);
@@ -1364,7 +1364,7 @@ static void *UserCameraMedia_SendVideoTask(void *arg)
                 memcpy(&dataBuffer[frameInfo[frameNumber].size], s_frameAudInfo, VIDEO_FRAME_AUD_LEN);
                 dataLength = dataLength + VIDEO_FRAME_AUD_LEN;
             }
-
+//ciecie ramki zeby sie zmiescila w 60KB
             lengthOfDataHaveBeenSent = 0;
             while (dataLength - lengthOfDataHaveBeenSent) {
                 lengthOfDataToBeSent = USER_UTIL_MIN(DATA_SEND_FROM_VIDEO_STREAM_MAX_LEN,

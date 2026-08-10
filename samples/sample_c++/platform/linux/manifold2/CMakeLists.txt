@@ -34,6 +34,7 @@ file(GLOB_RECURSE MODULE_SAMPLE_SRC
         ../../../module_sample/flight_controller/*.c*
         ../../../module_sample/hms_manager/*.c*
         ../../../../sample_c/module_sample/*.c
+        ../../../module_sample/custom_camera/*.c*
         )
 file(GLOB_RECURSE MODULE_COMMON_SRC ../common/*.c*)
 file(GLOB_RECURSE MODULE_HAL_SRC hal/*.c*)
@@ -64,7 +65,7 @@ add_executable(${PROJECT_NAME}
 
 # Try to see if user has OpenCV installed
 # if yes, default callback will display the image
-find_package(OpenCV QUIET)
+find_package(OpenCV REQUIRED)
 if (OpenCV_FOUND)
     message("\n${PROJECT_NAME}...")
     message(STATUS "Found OpenCV installed in the system, will use it to display image in AdvancedSensing APIs")
