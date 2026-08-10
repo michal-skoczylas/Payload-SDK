@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 
 if (NOT USE_SYSTEM_ARCH)
     # select use platform 'LINUX' or 'RTOS' here, reset cache and reload cmake project
@@ -6,7 +6,7 @@ if (NOT USE_SYSTEM_ARCH)
 endif ()
 
 if (USE_SYSTEM_ARCH MATCHES RTOS)
-    cmake_minimum_required(VERSION 3.15)
+    cmake_minimum_required(VERSION 3.5)
     set(CMAKE_C_COMPILER arm-none-eabi-gcc)
     set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
     set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
@@ -27,9 +27,13 @@ endif ()
 
 if (USE_SYSTEM_ARCH MATCHES LINUX)
     add_definitions(-DSYSTEM_ARCH_LINUX)
-    add_subdirectory(samples/sample_c/platform/linux/manifold3)
-    add_subdirectory(samples/sample_c++/platform/linux/manifold3)
-
+    # opencv
+    find_package(OpenCV REQUIRED)
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    message(STATUS "OpenCV found in version: ${OpenCV_VERSION}")
+    add_subdirectory(samples/sample_c/platform/linux/manifold2)
+    add_subdirectory(samples/sample_c++/platform/linux/manifold2)
+    
     execute_process(COMMAND uname -m OUTPUT_VARIABLE DEVICE_SYSTEM_ID)
     if (DEVICE_SYSTEM_ID MATCHES x86_64)
         set(LIBRARY_PATH psdk_lib/lib/x86_64-linux-gnu-gcc)

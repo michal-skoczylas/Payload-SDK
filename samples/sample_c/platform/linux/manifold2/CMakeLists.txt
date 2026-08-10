@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(dji_sdk_demo_linux C)
+project(dji_sdk_demo_linux C CXX)
 
 set(CMAKE_C_FLAGS "-pthread -std=gnu99")
 set(CMAKE_CXX_FLAGS "-std=c++11 -pthread")
@@ -47,6 +47,13 @@ include_directories(../../../../../psdk_lib/include)
 link_directories(../../../../../psdk_lib/lib/${TOOLCHAIN_NAME})
 link_libraries(${CMAKE_CURRENT_LIST_DIR}/../../../../../psdk_lib/lib/${TOOLCHAIN_NAME}/lib${PACKAGE_NAME}.a)
 
+
+find_package(OpenCV REQUIRED)
+if (OpenCV_FOUND)
+    message(STATUS "Found OpenCV version: ${OpenCV_VERSION}")
+    include_directories(${OpenCV_INCLUDE_DIRS})
+endif () 
+
 if (NOT EXECUTABLE_OUTPUT_PATH)
     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 endif ()
@@ -81,8 +88,8 @@ if (LIBUSB_FOUND)
 else ()
     message(STATUS "Cannot Find LIBUSB")
 endif (LIBUSB_FOUND)
-
-target_link_libraries(${PROJECT_NAME} m dl)
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} m)
 
 add_custom_command(TARGET ${PROJECT_NAME}
         PRE_LINK COMMAND cmake ..
