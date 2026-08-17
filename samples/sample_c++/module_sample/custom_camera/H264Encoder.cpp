@@ -32,9 +32,10 @@ H264Encoder::H264Encoder(int width, int height, int fps, int bitrate)
     this->codecCtx_->bit_rate = bitrate_;
     this->codecCtx_->gop_size = 2 * fps;
     this->codecCtx_->max_b_frames = 0;
-    this->codecCtx_->thread_count = 1;
+    this->codecCtx_->thread_count = 0; // auto: wszystkie rdzenie (1 watek = ~3 fps na RPi 4B)
     AVDictionary *opts = nullptr;
     av_dict_set(&opts, "tune", "zerolatency", 0);
+    av_dict_set(&opts, "preset", "superfast", 0); // medium = ~312 ms/klatke na ARM, za wolne na 30 fps
     if (!avcodec_open2(this->codecCtx_, codec, &opts))
     {
         av_dict_free(&opts);
