@@ -50,6 +50,9 @@
 #include "custom_camera/H264Encoder.h"
 #include "custom_camera/DjiPayloadSender.h"
 #include "custom_camera/VideoStreamPipeline.h"
+#ifdef REALSENSE_INSTALLED
+#include "custom_camera/RealsenseFrameSource.h"
+#endif
 #include <memory>
 #include <thread>
 #include <chrono>
@@ -63,6 +66,9 @@
 /* Private functions declaration ---------------------------------------------*/
 
 void DjiUser_RunCustomVideoStreamSample();
+#ifdef REALSENSE_INSTALLED
+void DjiUser_RunCustomRealsenseStreamSample();
+#endif
 
 /* Exported functions definition ---------------------------------------------*/
 int main(int argc, char **argv)
@@ -125,6 +131,13 @@ start:
     case 'v':
         DjiUser_RunCustomVideoStreamSample();
         break;
+    case 'r':
+#ifdef REALSENSE_INSTALLED
+        DjiUser_RunCustomRealsenseStreamSample();
+#else
+        std::cout << "RealSense not available in this build" << std::endl;
+#endif
+        break;
     default:
         break;
     }
@@ -186,4 +199,79 @@ void DjiUser_RunCustomVideoStreamSample()
         USER_LOG_ERROR("Error occured in stream %s", e.what());
     }
 }
+
+#ifdef REALSENSE_INSTALLED
+void DjiUser_RunCustomRealsenseStreamSample()
+{
+    USER_LOG_INFO("Starting RealSense video stream");
+
+    int preset = 1;
+    std::cout << "Select RealSense preset:\n"
+              << "  [1] 1280x720 @ 30 (default)\n"
+              << "  [2] 1920x1080 @ 30\n"
+              << "  [3] 640x480 @ 60\n"
+              << "> ";
+    std::cin >> preset;
+
+    int width, height, fps, bitrate;
+    switch (preset)
+    {
+    case 2:
+        width = 1920; height = 1080; fps = 30; bitrate = 6000000;
+        break;
+    case 3:
+        width = 640; height = 480; fps = 60; bitrate = 3000000;
+        break;
+    default:
+        width = 1280; height = 720; fps = 30; bitrate = 4000000;
+        break;
+    }
+
+    try
+    {
+        auto source = std::unique_ptr<IFrameSource>(new RealsenseFrameSource(width, height, fps));
+        if (!source->open())
+        {
+            USER_LOG_ERROR("Could not open RealSense camera");
+            return;
+        }
+
+        auto encoder = std::unique_ptr<H264Encoder>(
+            new H264Encoder(source->getWidth(), source->getHeight(), source->getFps(), bitrate));
+        if (!encoder->isReady())
+        {
+            USER_LOG_ERROR("Encoder failed to be ready");
+            return;
+        }
+
+        auto sender = std::unique_ptr<DjiPayloadSender>(new DjiPayloadSender());
+
+        VideoStreamPipeline pipeline(std::move(source), std::move(encoder), std::move(sender));
+
+        USER_LOG_INFO("Starting sending video...");
+        if (!pipeline.start())
+        {
+            USER_LOG_ERROR("Pipeline failed to start");
+            return;
+        }
+
+        // 30 fps, wysylka leci w watku pipeline
+        for (int i = 0; i < 300; i++)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (i % 10 == 0)
+            {
+                std::cout << "[STREAM] running, " << i / 10 << "s" << std::endl;
+            }
+        }
+
+        pipeline.stop();
+        USER_LOG_INFO("Stream ended");
+    }
+    catch (const std::exception &e)
+    {
+        USER_LOG_ERROR("Error occured in stream %s", e.what());
+    }
+}
+#endif
 /****************** (C) COPYRIGHT DJI Innovations *****END OF FILE****/

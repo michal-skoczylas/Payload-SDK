@@ -119,6 +119,18 @@ if (FFMPEG_FOUND)
 else ()
     message(STATUS "Cannot Find FFMPEG")
 endif (FFMPEG_FOUND)
+
+# RealSense: opcjonalny - RealsenseFrameSource kompiluje sie tylko gdy biblioteka jest.
+# Bez niego build (np. kontener bez kamery) dalej dziala, a opcja 'r' jest wylaczona.
+find_package(realsense2 QUIET)
+if (realsense2_FOUND)
+    message(STATUS "Found RealSense SDK - RealsenseFrameSource enabled")
+    add_definitions(-DREALSENSE_INSTALLED)
+    target_link_libraries(${PROJECT_NAME} realsense2::realsense2)
+else ()
+    message(STATUS "RealSense SDK not found - RealsenseFrameSource disabled")
+endif ()
+
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../../../../../psdk_lib/include)
 
 find_package(OPUS REQUIRED)

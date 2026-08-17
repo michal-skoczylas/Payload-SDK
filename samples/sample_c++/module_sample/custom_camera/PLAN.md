@@ -345,30 +345,110 @@ go naprawdę dobrze.
 
 ---
 
-## Krok 8 — Raspberry Pi + RealSense (dopiero jak dostaniesz sprzęt)
+## Krok 8 — Raspberry Pi 4B + RealSense D435i (kolor + depth)
 
 ### Cel
 Ta sama baza, tylko nowe źródło klatek. **Nie zmieniasz enkodera ani sendera.**
+Sprzęt: Raspberry Pi 4B (Debian/RPi OS 64-bit) + kamera Intel RealSense D435i
+(podłączona do **USB 3.0**). Na tym etapie obsługujemy **kolor + depth**; IMU
+(żyroskop/akcelerometr) zostawiamy na później.
+
+### Co musisz rozumieć o librealsense (RealSense SDK 2.0)
+
+| Pojęcie | Po ludzku |
+|---|---|
+| `rs2::pipeline` | wysoko-poziomowe API "daj mi strumień klatek" |
+| `rs2::config` | czego chcesz: sensor, rozdzielczość, format, fps |
+| `rs2::frameset` | paczka zsynchronizowanych klatek (kolor + depth z tego samego momentu) |
+| `rs2::video_frame` | pojedyncza klatka obrazu + `get_data()` (wskaźnik do pikseli) |
+| `RS2_FORMAT_BGR8` | format 8-bit BGR "gotowy dla OpenCV" (rs_sensor.h:77) |
+| `RS2_FORMAT_Z16` | depth 16-bit (mm), mapuje się na `CV_16UC1` |
+
+Wzorzec masz w repo librealsense:
+- `examples/capture/rs-capture.cpp` — minimalny grab (pipeline + config + wait_for_frames),
+- `wrappers/opencv/cv-helpers.hpp:11-45` — konwersja `rs2::frame` → `cv::Mat`,
+- `doc/frame_lifetime.md` — dlaczego **trzeba kopiować** piksele (bufor klatki jest
+  nadpisywany przy kolejnym `wait_for_frames`).
 
 ### Co zrobić
-1. Na RPi (RPi OS 64-bit): zainstaluj zależności jak w kontenerze (OpenCV, FFmpeg)
-   + `librealsense2-dev librealsense2-utils` (repo Intela, instrukcja na developer.intelrealsense.com).
-2. Napisz `RealsenseFrameSource.{h,cpp}` implementujący `IFrameSource`:
-   - `rs2::pipeline` → `rs2::config` (np. 1280×720 @30) → `pipeline.start(config)`,
-   - `readFrame()`: `pipeline.wait_for_frames()` → `get_color_frame()` →
-     skopiuj do `cv::Mat` (przetwórz format rs2 do BGR — poczytaj o `rs2::video_frame`),
-   - `close()` → `pipeline.stop()`.
-3. Kompilacja: dodaj `find_package(realsense2)` w CMake i włączaj ten plik tylko
-   gdy biblioteka jest (przykład wzorca: jak `if (FFMPEG_FOUND)` w `manifold2/CMakeLists.txt:79-104`).
-4. Test na sucho (bez PSDK): mały program grabujący klatki z wypisaniem wymiarów/fps.
+
+1. **Instalacja librealsense na Debian 64-bit.** RPi OS to Debian, nie Ubuntu LTS,
+   więc pakiet `librealsense2-dkms` z apt Intela (tworzony pod kernela Ubuntu) zwykle
+   **nie działa**. Użyj budowy ze źródła z backendem libuvc (`FORCE_RSUSB_BACKEND`),
+   który nie wymaga łatania kernela (doc/libuvc_installation.md, doc/RaspberryPi3.md):
+   ```bash
+   sudo apt install -y git cmake libusb-1.0-0-dev libudev-dev pkg-config libssl-dev build-essential
+   sudo cp config/99-realsense-libusb.rules /etc/udev/rules.d/
+   sudo udevadm control --reload-rules && sudo udevadm trigger
+
+   mkdir build && cd build
+   cmake .. -DBUILD_EXAMPLES=true -DBUILD_GRAPHICAL_EXAMPLES=false \
+            -DBUILD_WITH_TM2=false -DFORCE_RSUSB_BACKEND=true \
+            -DCMAKE_BUILD_TYPE=Release
+   make -j4 && sudo make install && sudo ldconfig
+   ```
+   Weryfikacja: `rs-enumerate-devices` (lista profili D435i) i `realsense-viewer` (podgląd).
+
+2. **Rozszerz `IFrameSource` o depth.** Dodaj metodę z domyślną implementacją, żeby
+   `FileFrameSource` dalej działał bez zmian:
+   ```cpp
+   virtual bool readDepth(cv::Mat &depth) { (void)depth; return false; }
+   ```
+
+3. **Napisz `RealsenseFrameSource.{h,cpp}`** implementujący `IFrameSource`:
+   - **Konstruktor** `(int width, int height, int fps)` — konfigurowalny (patrz krok 4).
+   - **`open()`**: `cfg_.enable_stream(RS2_STREAM_COLOR, w, h, RS2_FORMAT_BGR8, fps)`
+     + `cfg_.enable_stream(RS2_STREAM_DEPTH, dw, dh, RS2_FORMAT_Z16, 30)` →
+     `pipe_.start(cfg_)` w try/catch na `rs2::error`. Po starcie odczytaj *rzeczywisty*
+     profil z `pipe_.get_active_profile()` i nadpisz `width_/height_/fps_` (kamera może
+     "domówić" inną rozdzielczość niż prosiłeś).
+   - **`readFrame(cv::Mat &frame)`**: `wait_for_frames(shortTimeout)` →
+     `get_color_frame()` → skopiuj (`memcpy`/`.clone()`) do `cv::Mat` CV_8UC3 BGR.
+     **Kopiujesz, nie opakowujesz wskaźnika** (żywotność bufora — frame_lifetime.md).
+     Cache'uj depth do składowej `depth_` (CV_16UC1).
+   - **`readDepth(cv::Mat &depth)`**: zwróć skopiowany `depth_`.
+   - **`close()`**: `pipe_.stop()`.
+   - Gettery zwracają zapisane pola.
+
+4. **Opcje wyboru rozdzielczości/fps.** W menu dodaj opcję `r` z presetami:
+   - `1280×720 @ 30` (domyślny — mieści się w 8 Mbps, mało obciąża enkoder RPi 4B),
+   - `1920×1080 @ 30`,
+   - `640×480 @ 60`.
+   Wybór leci do konstruktora `RealsenseFrameSource`; reszta kodu bez zmian.
+
+5. **Kompilacja**: w `manifold2/CMakeLists.txt` dodaj (wzór: blok `FFMPEG_FOUND` z
+   linii 93-121):
+   ```cmake
+   find_package(realsense2 QUIET)
+   if (realsense2_FOUND)
+       add_definitions(-DREALSENSE_INSTALLED)
+       target_link_libraries(${PROJECT_NAME} realsense2::realsense2)
+   endif()
+   ```
+   `RealsenseFrameSource.cpp` otocz makrem `#ifdef REALSENSE_INSTALLED` (i
+   `#include <librealsense2/rs.hpp>`), żeby build offline na Macu nie wymagał RealSense.
+
+6. **Test na sucho (bez PSDK)**: mały program grabujący 100 klatek z wypisaniem
+   wymiarów/fps **koloru i depth**.
 
 ### Jak podłączyć do pipeline'u
-Zamień konstrukcję `FileFrameSource` na `RealsenseFrameSource` — to cała zmiana.
-Reszta: enkoder, framing, wysyłka — bez dotyku.
+Zamień konstrukcję `FileFrameSource` na `RealsenseFrameSource` (menu `r`) — to cała
+zmiana. Reszta: enkoder, framing, wysyłka — bez dotyku.
+
+### Miękki stop
+`wait_for_frames()` domyślnie blokuje do 5 s. Użyj krótkiego timeoutu (np. 100 ms);
+przy timeout/rzuconym wyjątku zwróć `false` — `VideoStreamPipeline::run()` już
+obsługuje `false` jako "odczekaj 5 ms i sprawdź flagę" (VideoStreamPipeline.cpp:50-53).
+Dzięki temu `stop()` + `join()` nie zawiesza się.
 
 ### Pułapki
-- RealSense podłączaj do USB 3.0 (2.0 nie daje wystarczającej przepustowości).
+- **USB 3.0 obowiązkowo** (2.0 = degradacja rozdzielczości D435i).
+- **Kopiuj piksele** z `rs2::frame` (nie opakowuj wskaźnika).
+- **BGR8** → od razu format, który chce `H264Encoder`; `RGB8` wymagałoby `cvtColor`.
+- **Depth to Z16** → `CV_16UC1`, nie `CV_8U`.
 - Wymiary YUV420P muszą być parzyste; dobierz rozdzielczość sensownie do 8 Mbps.
+- Enabling depth = dodatkowa przepustowość USB; 1280×720 color + depth na USB3 jest OK.
+  Sprawdź w `rs-enumerate-devices`, które profile faktycznie wspiera kamera.
 
 ---
 
@@ -406,8 +486,9 @@ Napisz w `custom_camera/` krótki `README`:
 - jak uruchomić offline (makro stub) i na dronie,
 - schemat przepływu danych (ASCII):
   ```
-  RealSense/plik → klatka BGR → H264Encoder(NAL) → DjiPayloadSender(AUD+chunk)
-        → DjiPayloadCamera_SendVideoStream → dron → DJI Pilot 2
+  RealSense (kolor BGR8 + depth Z16) / plik → klatka BGR → H264Encoder(NAL)
+        → DjiPayloadSender(AUD+chunk) → DjiPayloadCamera_SendVideoStream
+        → dron → DJI Pilot 2
   ```
 - lista błędów, na które trafiłeś, i ich rozwiązania.
 
@@ -422,7 +503,7 @@ Napisz w `custom_camera/` krótki `README`:
 - [ ] Krok 5: pipeline w wątku, `ffplay` odtwarza
 - [ ] Krok 6: `SetVideoStreamType` przed `ApplicationStart`, menu `v` działa
 - [ ] Krok 7: test offline end-to-end zaliczony
-- [ ] Krok 8 (Pi): `RealsenseFrameSource` grabi klatki
+- [ ] Krok 8 (Pi): `RealsenseFrameSource` grabi klatki (kolor + depth)
 - [ ] Krok 9 (dron): obraz w DJI Pilot 2
 - [ ] Krok 10: Liveview + README
 
