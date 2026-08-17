@@ -2,6 +2,7 @@
 #include <thread>
 #include <chrono>
 #include <memory>
+#include <cstdlib>
 
 #include "RealsenseFrameSource.h"
 #include "H264Encoder.h"
@@ -10,11 +11,15 @@
 
 // End-to-end offline: RealSense -> H264Encoder -> DjiPayloadSender(symulacja)
 // Buduj z -DDJI_STREAM_SIMULATE, wynik w stream_out.h264
-int main()
+// Uzycie: realsense_pipeline_test [width height fps bitrate]
+int main(int argc, char **argv)
 {
     try
     {
-        const int width = 1280, height = 720, fps = 30, bitrate = 4000000;
+        const int width = argc > 1 ? atoi(argv[1]) : 1280;
+        const int height = argc > 2 ? atoi(argv[2]) : 720;
+        const int fps = argc > 3 ? atoi(argv[3]) : 30;
+        const int bitrate = argc > 4 ? atoi(argv[4]) : 4000000;
 
         auto source = std::unique_ptr<IFrameSource>(new RealsenseFrameSource(width, height, fps));
         if (!source->open())
