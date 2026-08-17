@@ -76,7 +76,6 @@ int main(int argc, char **argv)
     // Application application(argc, argv);
     char inputChar;
     T_DjiReturnCode djiStat;
-    T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
     T_DjiReturnCode returnCode;
     T_DjiTestApplyHighPowerHandler applyHighPowerHandler;
 
@@ -142,7 +141,7 @@ start:
         break;
     }
 
-    osalHandler->TaskSleepMs(2000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     goto start;
 }
