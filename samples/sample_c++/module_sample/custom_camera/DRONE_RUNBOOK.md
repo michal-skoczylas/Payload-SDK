@@ -6,6 +6,12 @@ Ten dokument opisuje, jak przygotować kod i jak uruchomić pipeline wideo na dr
 > Podstawa: cała robota z `PLAN.md` + sesje testowe na Macu i RPi 4B.
 > Wszystkie komendy RPi wykonuj przez SSH (`ssh user@192.168.1.21`), hasło jak zwykle.
 
+> **Gałąź: `feature/psdk-3.9.2`** (PSDK 3.9.2, spójne drzewo z DJI). 
+> Liveview (odbiór FPV) jest **wyłączony** w buildzie — jego dekoder używa API FFmpeg usuniętych w FFmpeg 7
+> (nasz pipeline go nie potrzebuje). 
+> Dry-run bez drona: 3.9.2 kończy się **czysto** ("Core init error.", exit 134), a 3.16-beta crashowała
+> SIGSEGV (139) — dlatego wróciliśmy na 3.9.2.
+
 ---
 
 ## 1. Przygotowanie kodu (ZROB PRZED WYJAZDEM — commit + push + pull na RPi)
