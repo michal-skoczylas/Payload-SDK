@@ -68,9 +68,8 @@ void DjiUser_RunCustomRealsenseStreamSample();
 /* Exported functions definition ---------------------------------------------*/
 int main(int argc, char **argv)
 {
-    // Tryb offline: init PSDK wylaczony (bez drona DjiCore_Init padnie po ~70 s).
-    // Na dzien z dronem ODKOMENTUJ te linie (patrz DRONE_RUNBOOK.md).
-    // Application application(argc, argv);
+    // DRONE-DAY: init PSDK aktywny (link musi byc gotowy - dron + E-Port podpiete).
+    Application application(argc, argv);
     char inputChar;
     T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
     T_DjiReturnCode returnCode;

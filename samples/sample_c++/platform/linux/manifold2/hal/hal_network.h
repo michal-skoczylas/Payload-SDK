@@ -42,7 +42,9 @@ extern "C" {
 #ifdef PLATFORM_ARCH_x86_64
 #define LINUX_NETWORK_DEV           "enxf8e43b7bbc2c"
 #else
-#define LINUX_NETWORK_DEV           "l4tbr0"
+// DRONE-DAY (RPi): karta E-Port. Zweryfikuj nazwe przez 'ip link' po podpieciu E-Port.
+// Domyslnie RPi Ethernet = "eth0"; USB-Ethernet (ASIX) bedzie "enx...".
+#define LINUX_NETWORK_DEV           "eth0"
 #endif
 /**
  * @attention
