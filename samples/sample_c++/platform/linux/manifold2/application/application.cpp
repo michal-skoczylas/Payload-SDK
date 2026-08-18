@@ -302,11 +302,6 @@ void Application::DjiUser_ApplicationStart()
         throw std::runtime_error("Core init error.");
     }
 
-    // DRY-RUN (bez drona): DjiAircraftInfo_GetBaseInfo zablokowalby/rzucil bez linku.
-    // Dummy wartosci, zeby przetestowac rejestracje kamery i ApplicationStart.
-    // Przywrocic oryginalny blok GetBaseInfo + check mountPosition na dzien z dronem.
-    aircraftInfoBaseInfo.mountPosition = DJI_MOUNT_POSITION_EXTENSION_PORT;
-    /*
     returnCode = DjiAircraftInfo_GetBaseInfo(&aircraftInfoBaseInfo);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         throw std::runtime_error("Get aircraft base info error.");
@@ -316,7 +311,6 @@ void Application::DjiUser_ApplicationStart()
         && DJI_MOUNT_POSITION_EXTENSION_LITE_PORT != aircraftInfoBaseInfo.mountPosition) {
         throw std::runtime_error("Please run this sample on extension port.");
     }
-    */
 
     returnCode = DjiCore_SetAlias("PSDK_APPALIAS");
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {

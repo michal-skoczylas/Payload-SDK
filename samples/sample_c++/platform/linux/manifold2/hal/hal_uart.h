@@ -45,8 +45,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 //User can config dev based on there environmental conditions
-// DRY-RUN: ttyS0 istnieje na RPi bez adaptera E-Port; przywrocic /dev/ttyUSB0 na dzien z dronem
-#define LINUX_UART_DEV1    "/dev/ttyS0"
+#define LINUX_UART_DEV1    "/dev/ttyUSB0"
 #define LINUX_UART_DEV2    "/dev/ttyACM0"
 
 /* Exported types ------------------------------------------------------------*/
