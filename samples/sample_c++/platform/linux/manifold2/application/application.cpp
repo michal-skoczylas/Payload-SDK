@@ -299,10 +299,7 @@ void Application::DjiUser_ApplicationStart()
     returnCode = DjiCore_Init(&userInfo);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         sleep(1);
-        // DRY-RUN: bez drona init nie nawiaze linku (timeout ~70 s).
-        // Zamiast throw idziemy dalej, zeby zobaczyc kody zwrotne rejestracji kamery.
-        // Przywrocic throw na dzien z dronem.
-        USER_LOG_WARN("DRY-RUN: Core init failed (0x%X) - continuing without link", returnCode);
+        throw std::runtime_error("Core init error.");
     }
 
     // DRY-RUN (bez drona): DjiAircraftInfo_GetBaseInfo zablokowalby/rzucil bez linku.
