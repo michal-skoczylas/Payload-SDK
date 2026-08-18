@@ -8,6 +8,13 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 add_definitions(-D_GNU_SOURCE)
 
+# Tryb offline: strumien zapisywany do pliku (stub) zamiast do drona.
+# Uzycie: cmake .. -DOFFLINE_STREAM_ON=ON
+option(OFFLINE_STREAM_ON "Stream video to file instead of PSDK (stub)" OFF)
+if (OFFLINE_STREAM_ON)
+    add_definitions(-DDJI_STREAM_SIMULATE)
+endif ()
+
 if (MEMORY_LEAK_CHECK_ON MATCHES TRUE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
@@ -33,6 +40,7 @@ file(GLOB_RECURSE MODULE_SAMPLE_SRC
         ../../../module_sample/gimbal/*.c*
         ../../../module_sample/flight_controller/*.c*
         ../../../module_sample/hms_manager/*.c*
+        ../../../module_sample/custom_camera/*.c*
         ../../../../sample_c/module_sample/*.c
         )
 file(GLOB_RECURSE MODULE_COMMON_SRC ../common/*.c*)
@@ -75,6 +83,14 @@ else ()
     message(STATUS "Did not find OpenCV in the system, image data is inside RecvContainer as raw data")
 endif ()
 
+# RPi/Debian: FFmpeg 7.x z multiarch. Wymuszamy sciezki aarch64 PRZED find_package,
+# zeby nie trafic na ewentualna stara wersje w /usr/local (konflikt jak w kontenerze).
+set(FFMPEG_INCLUDE_DIR "/usr/include/aarch64-linux-gnu" CACHE PATH "FFmpeg headers" FORCE)
+set(FFMPEG_avcodec_LIBRARY "/usr/lib/aarch64-linux-gnu/libavcodec.so" CACHE FILEPATH "avcodec" FORCE)
+set(FFMPEG_avformat_LIBRARY "/usr/lib/aarch64-linux-gnu/libavformat.so" CACHE FILEPATH "avformat" FORCE)
+set(FFMPEG_avutil_LIBRARY "/usr/lib/aarch64-linux-gnu/libavutil.so" CACHE FILEPATH "avutil" FORCE)
+set(FFMPEG_swscale_LIBRARY "/usr/lib/aarch64-linux-gnu/libswscale.so" CACHE FILEPATH "swscale" FORCE)
+
 find_package(FFMPEG REQUIRED)
 if (FFMPEG_FOUND)
     message(STATUS "Found FFMPEG installed in the system")
@@ -97,6 +113,7 @@ if (FFMPEG_FOUND)
 
     target_link_libraries(${PROJECT_NAME} ${FFMPEG_LIBRARIES})
     include_directories(${FFMPEG_INCLUDE_DIR})
+    target_compile_options(${PROJECT_NAME} PRIVATE -isystem /usr/include/aarch64-linux-gnu)
     add_definitions(-DFFMPEG_INSTALLED)
 else ()
     message(STATUS "Cannot Find FFMPEG")
@@ -110,7 +127,7 @@ if (OPUS_FOUND)
     message(STATUS " - Libraries: ${OPUS_LIBRARY}")
 
     add_definitions(-DOPUS_INSTALLED)
-    target_link_libraries(${PROJECT_NAME} /usr/local/lib/libopus.a)
+    target_link_libraries(${PROJECT_NAME} ${OPUS_LIBRARY})
 else ()
     message(STATUS "Cannot Find OPUS")
 endif (OPUS_FOUND)
@@ -126,6 +143,16 @@ if (LIBUSB_FOUND)
 else ()
     message(STATUS "Cannot Find LIBUSB")
 endif (LIBUSB_FOUND)
+
+# RealSense: opcjonalny - RealsenseFrameSource kompiluje sie tylko gdy biblioteka jest.
+find_package(realsense2 QUIET)
+if (realsense2_FOUND)
+    message(STATUS "Found RealSense SDK - RealsenseFrameSource enabled")
+    add_definitions(-DREALSENSE_INSTALLED)
+    target_link_libraries(${PROJECT_NAME} realsense2::realsense2)
+else ()
+    message(STATUS "RealSense SDK not found - RealsenseFrameSource disabled")
+endif ()
 
 if (NOT EXECUTABLE_OUTPUT_PATH)
     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
