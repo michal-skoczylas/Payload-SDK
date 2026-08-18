@@ -23,7 +23,6 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include <liveview/test_liveview_entry.hpp>
 #include <perception/test_perception_entry.hpp>
 #include <flight_control/test_flight_control.h>
 #include <gimbal/test_gimbal_entry.hpp>
@@ -83,7 +82,6 @@ start:
         << "| [1] Flight controller sample - you can control flying by PSDK                                    |\n"
         << "| [2] Hms info manager sample - get health manger system info by language                          |\n"
         << "| [a] Gimbal manager sample - you can control gimbal by PSDK                                       |\n"
-        << "| [c] Camera stream view sample - display the camera video stream                                  |\n"
         << "| [d] Stereo vision view sample - display the stereo image                                         |\n"
         << "| [e] Run camera manager sample - you can test camera's functions interactively                    |\n"
         << "| [f] Start rtk positioning sample - you can receive rtk rtcm data when rtk signal is ok           |\n"
@@ -106,9 +104,6 @@ start:
             break;
         case 'a':
             DjiUser_RunGimbalManagerSample();
-            break;
-        case 'c':
-            DjiUser_RunCameraStreamViewSample();
             break;
         case 'd':
             DjiUser_RunStereoVisionViewSample();
