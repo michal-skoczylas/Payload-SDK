@@ -73,7 +73,8 @@ void DjiUser_RunCustomRealsenseStreamSample();
 /* Exported functions definition ---------------------------------------------*/
 int main(int argc, char **argv)
 {
-    // Application application(argc, argv);
+    // DRY-RUN: wlaczony init PSDK (bez drona link nie powstanie - to cel testu)
+    Application application(argc, argv);
     char inputChar;
     T_DjiReturnCode djiStat;
     T_DjiReturnCode returnCode;
