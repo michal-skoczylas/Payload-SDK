@@ -323,17 +323,17 @@ void Application::DjiUser_ApplicationStart()
 
     returnCode = DjiCore_SetAlias("PSDK_APPALIAS");
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: SetAlias failed: 0x%X", returnCode);
+        throw std::runtime_error("Set alias error.");
     }
 
     returnCode = DjiCore_SetFirmwareVersion(firmwareVersion);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: SetFirmwareVersion failed: 0x%X", returnCode);
+        throw std::runtime_error("Set firmware version error.");
     }
 
     returnCode = DjiCore_SetSerialNumber("PSDK12345678XX");
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: SetSerialNumber failed: 0x%X", returnCode);
+        throw std::runtime_error("Set serial number error");
     }
 
     /* Rejestracja kamery payloadu: minimalny handler + format DJI-H264.
@@ -341,7 +341,7 @@ void Application::DjiUser_ApplicationStart()
        (dji_payload_camera.h:803), inaczej SDK uzyje domyslnego typu i zablokuje API. */
     returnCode = DjiPayloadCamera_Init();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: DjiPayloadCamera_Init failed: 0x%X", returnCode);
+        throw std::runtime_error("Payload camera init error");
     }
 
     s_cameraCommonHandler.GetSystemState = DjiCustom_CameraGetSystemState;
@@ -350,12 +350,12 @@ void Application::DjiUser_ApplicationStart()
 
     returnCode = DjiPayloadCamera_RegCommonHandler(&s_cameraCommonHandler);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: DjiPayloadCamera_RegCommonHandler failed: 0x%X", returnCode);
+        throw std::runtime_error("Payload camera register common handler error");
     }
 
     returnCode = DjiPayloadCamera_SetVideoStreamType(DJI_CAMERA_VIDEO_STREAM_TYPE_H264_DJI_FORMAT);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: DjiPayloadCamera_SetVideoStreamType failed: 0x%X", returnCode);
+        throw std::runtime_error("Payload camera set video stream type error");
     }
 
 #ifdef CONFIG_MODULE_SAMPLE_CAMERA_EMU_ON
@@ -419,10 +419,10 @@ void Application::DjiUser_ApplicationStart()
 
     returnCode = DjiCore_ApplicationStart();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_WARN("DRY-RUN: DjiCore_ApplicationStart failed: 0x%X", returnCode);
-    } else {
-        USER_LOG_INFO("Application start.");
+        throw std::runtime_error("Start sdk application error.");
     }
+
+    USER_LOG_INFO("Application start.");
 }
 
 T_DjiReturnCode Application::DjiUser_PrintConsole(const uint8_t *data, uint16_t dataLen)
