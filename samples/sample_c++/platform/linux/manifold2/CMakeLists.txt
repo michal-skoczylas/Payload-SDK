@@ -15,6 +15,13 @@ if (OFFLINE_STREAM_ON)
     add_definitions(-DDJI_STREAM_SIMULATE)
 endif ()
 
+# Strumien z dolnej kamery wizyjnej (modul Perception) do Pilot 2.
+# Bez tego makra PerceptionFrameSource nie jest kompilowany (tryb offline).
+option(PERCEPTION_STREAM_ON "Stream down perception camera to Pilot 2" OFF)
+if (PERCEPTION_STREAM_ON)
+    add_definitions(-DPERCEPTION_STREAM_ENABLED)
+endif ()
+
 if (MEMORY_LEAK_CHECK_ON MATCHES TRUE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
@@ -41,6 +48,7 @@ file(GLOB_RECURSE MODULE_SAMPLE_SRC
         ../../../module_sample/hms_manager/*.c*
         ../../../module_sample/custom_camera/*.c*
         ../../../../sample_c/module_sample/*.c
+        ../../../module_sample/perception_cameras/*.c*
         )
 file(GLOB_RECURSE MODULE_COMMON_SRC ../common/*.c*)
 file(GLOB_RECURSE MODULE_HAL_SRC hal/*.c*)

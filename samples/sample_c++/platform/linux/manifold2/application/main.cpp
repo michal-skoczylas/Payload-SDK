@@ -49,6 +49,9 @@
 #ifdef REALSENSE_INSTALLED
 #include "custom_camera/RealsenseFrameSource.h"
 #endif
+#ifdef PERCEPTION_STREAM_ENABLED
+#include "perception_cameras/perception_stream_sample.h"
+#endif
 #include <memory>
 #include <thread>
 #include <chrono>
@@ -90,6 +93,9 @@ start:
 #ifdef REALSENSE_INSTALLED
         << "| [r] RealSense stream sample - stream RealSense camera (preset select)                          |\n"
 #endif
+#ifdef PERCEPTION_STREAM_ENABLED
+        << "| [p] Perception stream sample - stream down vision camera to Pilot 2                            |\n"
+#endif
         << std::endl;
 
     std::cin >> inputChar;
@@ -129,6 +135,13 @@ start:
             DjiUser_RunCustomRealsenseStreamSample();
 #else
             std::cout << "RealSense not available in this build" << std::endl;
+#endif
+            break;
+        case 'p':
+#ifdef PERCEPTION_STREAM_ENABLED
+            DjiUser_RunPerceptionStreamSample();
+#else
+            std::cout << "Perception stream not available in this build" << std::endl;
 #endif
             break;
         default:
