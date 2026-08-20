@@ -199,6 +199,7 @@ void DjiUser_RunCustomVideoStreamSample()
         }
 
         pipeline.stop();
+        source->close();
         USER_LOG_INFO("Stream ended");
     }
     catch (const std::exception &e)
@@ -213,12 +214,26 @@ void DjiUser_RunCustomRealsenseStreamSample()
     USER_LOG_INFO("Starting RealSense video stream");
 
     int preset = 1;
-    std::cout << "Select RealSense preset:\n"
-              << "  [1] 1280x720 @ 30 (default)\n"
-              << "  [2] 1920x1080 @ 30\n"
-              << "  [3] 640x480 @ 60\n"
-              << "> ";
-    std::cin >> preset;
+    while (true)
+    {
+        std::cout << "Select RealSense preset:\n"
+                  << "  [1] 1280x720 @ 30 (default)\n"
+                  << "  [2] 1920x1080 @ 30\n"
+                  << "  [3] 640x480 @ 60\n"
+                  << "> ";
+        std::cin >> preset;
+        if (std::cin.fail())
+        {
+            std::cin.clear();
+            std::cin.ignore(10000, '\n');
+            continue;
+        }
+        if (preset >= 1 && preset <= 3)
+        {
+            std::cin.ignore(10000, '\n');
+            break;
+        }
+    }
 
     int width, height, fps, bitrate;
     switch (preset)
@@ -273,6 +288,7 @@ void DjiUser_RunCustomRealsenseStreamSample()
         }
 
         pipeline.stop();
+        source->close();
         USER_LOG_INFO("Stream ended");
     }
     catch (const std::exception &e)

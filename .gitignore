@@ -1,0 +1,4 @@
+build/
+*.mp4
+*.h264
+.DS_Store

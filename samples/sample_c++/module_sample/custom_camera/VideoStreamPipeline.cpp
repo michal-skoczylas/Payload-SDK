@@ -43,6 +43,8 @@ void VideoStreamPipeline::run()
     const double period = 1.0 / source_->getFps();
     using clock = std::chrono::steady_clock;
     auto next = clock::now();
+    auto logStart = clock::now();
+    size_t sentFrames = 0;
 
     while (running_)
     {
@@ -54,7 +56,22 @@ void VideoStreamPipeline::run()
         }
         std::vector<uint8_t> nals = encoder_->encodedFrame(frame);
         if (!sender_->send(nals))
+        {
+            // kanal busy / blad wysylki - odczekaj, nie werci sie w goraca petle
             std::cerr << "[PIPELINE] send failed" << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            continue;
+        }
+        sentFrames++;
+
+        auto now = clock::now();
+        double logElapsed = std::chrono::duration<double>(now - logStart).count();
+        if (logElapsed >= 5.0)
+        {
+            std::cout << "[PIPELINE] " << (sentFrames / logElapsed) << " fps" << std::endl;
+            sentFrames = 0;
+            logStart = now;
+        }
 
         next += std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(period));
         if (next > clock::now())

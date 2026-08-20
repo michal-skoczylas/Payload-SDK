@@ -55,7 +55,9 @@ H264Encoder::H264Encoder(int width, int height, int fps, int bitrate, EncoderBac
         codecCtx_->time_base = {1, fps_};
         codecCtx_->framerate = {fps_, 1};
         codecCtx_->bit_rate = bitrate_;
-        codecCtx_->gop_size = 2 * fps_;
+        codecCtx_->rc_max_rate = bitrate_;
+        codecCtx_->rc_buffer_size = bitrate_ / 2;
+        codecCtx_->gop_size = fps_;              // I-klatka co ~1 s (szybszy start dekodowania)
         codecCtx_->max_b_frames = 0;
         codecCtx_->thread_count = 0; // x264: wszystkie rdzenie; v4l2m2m ignoruje
 
@@ -64,6 +66,7 @@ H264Encoder::H264Encoder(int width, int height, int fps, int bitrate, EncoderBac
         {
             av_dict_set(&opts, "tune", "zerolatency", 0);
             av_dict_set(&opts, "preset", "superfast", 0); // medium = ~312 ms/klatke na ARM, za wolne na 30 fps
+            av_dict_set(&opts, "repeat-headers", "1", 0);    // SPS/PPS przy kazdej I-klatce - stabilniejszy start
         }
         // v4l2m2m: zadnych opcji x264-owych - avcodec_open2 by je odrzucil
 
@@ -71,7 +74,7 @@ H264Encoder::H264Encoder(int width, int height, int fps, int bitrate, EncoderBac
         {
             av_dict_free(&opts);
             encoderName_ = codec->name;
-            break; // sukces - ten enkoder zostaje
+            break; 
         }
 
         av_dict_free(&opts);

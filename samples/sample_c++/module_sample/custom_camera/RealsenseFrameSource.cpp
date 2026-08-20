@@ -24,6 +24,12 @@ bool RealsenseFrameSource::open()
         this->width_ = profile.width();
         this->height_ = profile.height();
         this->fps_ = profile.fps();
+        if (this->width_ != width || this->height_ != height || this->fps_ != fps)
+        {
+            std::cerr << "RealSense: zadano " << width << "x" << height << "@" << fps
+                      << "fps, kamera dal " << this->width_ << "x" << this->height_
+                      << "@" << this->fps_ << "fps" << std::endl;
+        }
         this->isOpen_ = true;
         return true;
     }
@@ -38,7 +44,7 @@ bool RealsenseFrameSource::readFrame(cv::Mat &frame)
 {
     try
     {
-        rs2::frameset fs = this->pipe_.wait_for_frames(500);
+        rs2::frameset fs = this->pipe_.wait_for_frames(100);
         rs2::video_frame color = fs.get_color_frame();
         if (!color)
         {
