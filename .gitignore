@@ -1,4 +1,5 @@
 build/
+build_drone/
 *.mp4
 *.h264
 .DS_Store
