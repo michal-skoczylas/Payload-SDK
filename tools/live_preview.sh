@@ -9,12 +9,17 @@
 # Opcje przez zmienne srodowiskowe:
 #   RPI_IP=192.168.1.23 RPI_USER=user RPI_PORT=5555
 #   RPI_SSH_KEY=/sciezka/klucza   # opcjonalny klucz do SSH (bez hasla)
+#   RPI_WIDTH=1920 RPI_HEIGHT=1080 RPI_FPS=30 RPI_BITRATE=6000000
 set -u
 
 RPI_USER=${RPI_USER:-user}
 RPI_IP=${RPI_IP:-192.168.1.23}
 RPI_PORT=${RPI_PORT:-5555}
 RPI_KEY=${RPI_SSH_KEY:-}
+RPI_WIDTH=${RPI_WIDTH:-1280}
+RPI_HEIGHT=${RPI_HEIGHT:-720}
+RPI_FPS=${RPI_FPS:-30}
+RPI_BITRATE=${RPI_BITRATE:-4000000}
 RPI="$RPI_USER@$RPI_IP"
 
 ssh_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
@@ -29,8 +34,8 @@ start_server() {
         echo "[preview] serwer juz dziala na $RPI"  >&2
         return 0
     fi
-    echo "[preview] start serwera na $RPI..." >&2
-    rpi "pkill -x stream_tcp_test 2>/dev/null; sleep 1; setsid nohup ./stream_tcp_test $RPI_PORT >/tmp/tcp_stream.log 2>&1 </dev/null & sleep 3" >/dev/null
+    echo "[preview] start serwera na $RPI (${RPI_WIDTH}x${RPI_HEIGHT}@${RPI_FPS}, bitrate ${RPI_BITRATE})..." >&2
+    rpi "pkill -x stream_tcp_test 2>/dev/null; sleep 1; setsid nohup ./stream_tcp_test $RPI_PORT $RPI_WIDTH $RPI_HEIGHT $RPI_FPS $RPI_BITRATE >/tmp/tcp_stream.log 2>&1 </dev/null & sleep 3" >/dev/null
     sleep 1
     if server_is_running; then
         echo "[preview] OK, serwer nasluchuje na :$RPI_PORT (log: /tmp/tcp_stream.log)" >&2

@@ -13,22 +13,27 @@
 
 // Live TCP stream: RealSense -> H264Encoder -> TCP socket -> Mac (ffplay)
 // RPi jest SERVEREM (listen), Mac sie laczy i dekoduje.
-// Uzycie: stream_tcp_test [port]  (domyslnie 5555)
+// Uzycie: stream_tcp_test [port] [width] [height] [fps] [bitrate]
+//   domyslnie: 5555 1280 720 30 4000000
 
 static const uint8_t kAud[6] = {0x00, 0x00, 0x00, 0x01, 0x09, 0x10};
 
 int main(int argc, char **argv)
 {
     const int port = argc > 1 ? atoi(argv[1]) : 5555;
+    const int width = argc > 2 ? atoi(argv[2]) : 1280;
+    const int height = argc > 3 ? atoi(argv[3]) : 720;
+    const int fps = argc > 4 ? atoi(argv[4]) : 30;
+    const int bitrate = argc > 5 ? atoi(argv[5]) : 4000000;
     try
     {
-        auto source = std::unique_ptr<IFrameSource>(new RealsenseFrameSource(1280, 720, 30));
+        auto source = std::unique_ptr<IFrameSource>(new RealsenseFrameSource(width, height, fps));
         if (!source->open())
         {
             std::cerr << "camera open failed" << std::endl;
             return 1;
         }
-        H264Encoder encoder(source->getWidth(), source->getHeight(), source->getFps(), 4000000);
+        H264Encoder encoder(source->getWidth(), source->getHeight(), source->getFps(), bitrate);
         if (!encoder.isReady())
         {
             std::cerr << "encoder failed" << std::endl;
