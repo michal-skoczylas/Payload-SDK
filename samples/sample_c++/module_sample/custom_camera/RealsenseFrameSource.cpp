@@ -20,13 +20,18 @@ bool RealsenseFrameSource::open()
         this->cfg_.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
         this->pipe_.start(this->cfg_);
 
+        // zapamietaj zadane parametry zanim zostana nadpisane rzeczywistymi z kamery
+        const int reqWidth = this->width_;
+        const int reqHeight = this->height_;
+        const int reqFps = this->fps_;
+
         auto profile = this->pipe_.get_active_profile().get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
         this->width_ = profile.width();
         this->height_ = profile.height();
         this->fps_ = profile.fps();
-        if (this->width_ != width || this->height_ != height || this->fps_ != fps)
+        if (this->width_ != reqWidth || this->height_ != reqHeight || this->fps_ != reqFps)
         {
-            std::cerr << "RealSense: zadano " << width << "x" << height << "@" << fps
+            std::cerr << "RealSense: zadano " << reqWidth << "x" << reqHeight << "@" << reqFps
                       << "fps, kamera dal " << this->width_ << "x" << this->height_
                       << "@" << this->fps_ << "fps" << std::endl;
         }
